@@ -1,0 +1,16 @@
+{
+  "name": "@wpsyntex/polylang-build-scripts",
+  "version": "1.0.0",
+  "description": "Contains the scripts needed to build Polylang",
+  "main": "main.js",
+  "keywords": [
+    "polylang",
+    "build-tools"
+  ],
+  "author": "WP Syntex",
+  "license": "GPL-3.0+",
+  "dependencies": {
+    "glob": "^7.1.6",
+    "path": "^0.12.7"
+  }
+}
