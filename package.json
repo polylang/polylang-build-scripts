@@ -1,6 +1,6 @@
 {
   "name": "@wpsyntex/polylang-build-scripts",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Contains the scripts needed to build Polylang",
   "repository": {
     "type": "git",

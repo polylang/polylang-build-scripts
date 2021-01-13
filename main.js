@@ -1,4 +1,1 @@
-import getCssFileNames from './getCssFileNames';
-import getJsFileNames from './getJsFileNames';
-
-export { getCssFileNames, getJsFileNames };
+module.exports = { getCssFileNamesEntries: require( './getCssFileNames' ), getJsFileNamesEntries: require( './getJsFileNames' ) };
