@@ -6,34 +6,6 @@
  * External dependencies
  */
 const path = require( 'path' );
-const glob = require( 'glob' ).sync;
-
-/**
- * Internal dependecies
- */
-const commonFileNamesToIgnore = require( './commonFileNamesToIgnore' );
-
-/**
- * Retrieves the javascript filenames to build and minify.
- *
- * @param {string} URI of the plugin's root path to output files.
- */
-function getJsFileNamesEntries( root ) {
-	const jsFileNames = glob(
-		'**/*.js',
-		{
-			cwd: root, 
-			ignore: [ ...commonFileNamesToIgnore, 'js/lib/**', '*.config.js' ]	
-		}
-	).map( filename => `${root}/${ filename }` );
-	console.log( 'js files to minify:', jsFileNames );
-
-	const jsFileNamesEntries = [
-		...jsFileNames.map( mapJsFiles( root, true ) ),
-		...jsFileNames.map( mapJsFiles( root ) )
-	];
-	return jsFileNamesEntries;
-}
 
 /**
  * @param {string} filename Source file's path and name.
@@ -51,13 +23,13 @@ function computeBuildFilename( filename, suffix ) {
  * @param {string[]} jsFileNames Source files to build.
  * @param {boolean} minimize True to generate minified files.
  */
- function mapJsFiles( root, minimize = false ) {
+ function transformJsEntry( destination, minimize = false ) {
 	return ( filename ) => {
 		const entry = {};
 		entry[ path.parse( filename ).name ] = filename;
 		const output = {
 			filename: computeBuildFilename( filename, minimize ? 'min' : '' ),
-			path: root, // Output path from the plugin's root folder, passed as parameter.
+			path: destination,
 			iife: false, // Avoid Webpack to wrap files into a IIFE which is not needed for this kind of javascript files.
 		};
 		const config = {
@@ -69,4 +41,4 @@ function computeBuildFilename( filename, suffix ) {
 	}
 }
 
-module.exports = getJsFileNamesEntries;
+module.exports = { transformJsEntry };
