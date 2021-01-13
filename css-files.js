@@ -10,7 +10,7 @@ const MiniCssExtractPlugin = require( 'mini-css-extract-plugin' );
 const CssMinimizerPlugin = require( 'css-minimizer-webpack-plugin' );
 const { CleanWebpackPlugin } = require( 'clean-webpack-plugin' );
 
-const minifiedPlugins = [
+const minifiedPlugins = () => ([
 	new MiniCssExtractPlugin(
 		{
 			filename: `css/build/[name].min.css`
@@ -27,13 +27,15 @@ const minifiedPlugins = [
 			],
 		}
 	),
-];
-const minifiedOptimization = {
+]);
+
+const minifiedOptimization = () => ({
 	minimize: true,
 	minimizer: [
 		new CssMinimizerPlugin(),
 	],
-};
+});
+
 function minifiedOutputPath( destination ) {
 	return {
 		filename: `css/[name].work`,
@@ -47,12 +49,16 @@ const optimization = {
 
 const plugins = [];
 
-function outputPath(root) {
+function outputPath(destination) {
 	return {
 		filename: `css/build/[name].css`,
-		path: root,
+		path: destination,
 	};
 }
+
+const minifiedLoaders = [ MiniCssExtractPlugin.loader, 'css-loader' ];
+
+const loaders = [ 'css-loader' ];
 
 function transformCssEntry( destination, isProduction, minify = false ) {
 	return ( filename ) => {
@@ -60,18 +66,18 @@ function transformCssEntry( destination, isProduction, minify = false ) {
 		entry[ path.parse( filename ).name ] = filename;
 		const config = {
 			entry: entry,
-			output: minify ? outputPath( destination ) : minifiedOutputPath( destination ),
-			plugins: minify ? plugins : minifiedPlugins,
+			output: minify ? minifiedOutputPath( destination ) : outputPath( destination ),
+			plugins: minify ? minifiedPlugins() : plugins,
 			module: {
 				rules: [
 					{
 						test: /\.css$/i,
-						use: [ MiniCssExtractPlugin.loader, 'css-loader' ],
+						use: minify ? minifiedLoaders : loaders,
 					},
 				],
 			},
 			devtool: !isProduction ? 'source-map' : false,
-			optimization: minify ? optimization : minifiedOptimization,
+			optimization: minify ? minifiedOptimization() : optimization,
 		};
 		return config;
 	};
