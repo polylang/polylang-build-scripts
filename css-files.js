@@ -6,6 +6,12 @@
  * External dependencies.
  */
 const path = require( 'path' );
+
+/**
+ * Peer Dependencies.
+ * Need to be installed in the project folder.
+ * For this reason, they cannot be instantiated from this file, but from the root of the project instead.
+ */
 const MiniCssExtractPlugin = require( 'mini-css-extract-plugin' );
 const CssMinimizerPlugin = require( 'css-minimizer-webpack-plugin' );
 const { CleanWebpackPlugin } = require( 'clean-webpack-plugin' );
@@ -56,7 +62,9 @@ function outputPath(destination) {
 	};
 }
 
-const minifiedLoaders = [ MiniCssExtractPlugin.loader, 'css-loader' ];
+function minifiedLoaders() {
+	return [ MiniCssExtractPlugin.loader, 'css-loader' ];
+}
 
 const loaders = [ 'css-loader' ];
 
@@ -72,7 +80,7 @@ function transformCssEntry( destination, isProduction, minify = false ) {
 				rules: [
 					{
 						test: /\.css$/i,
-						use: minify ? minifiedLoaders : loaders,
+						use: minify ? minifiedLoaders() : loaders,
 					},
 				],
 			},
