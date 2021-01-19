@@ -6,89 +6,65 @@
  * External dependencies.
  */
 const path = require( 'path' );
-
-/**
- * Peer Dependencies.
- * Need to be installed in the project folder.
- * For this reason, they cannot be instantiated from this file, but from the root of the project instead.
- */
 const MiniCssExtractPlugin = require( 'mini-css-extract-plugin' );
 const CssMinimizerPlugin = require( 'css-minimizer-webpack-plugin' );
 const { CleanWebpackPlugin } = require( 'clean-webpack-plugin' );
+const CopyPlugin = require('copy-webpack-plugin');
 
-const minifiedPlugins = () => ([
-	new MiniCssExtractPlugin(
-		{
-			filename: `css/build/[name].min.css`
-		}
-	),
-	new CleanWebpackPlugin(
-		{
-			dry: false,
-			verbose: false,
-			cleanOnceBeforeBuildPatterns: [],
-			cleanAfterEveryBuildPatterns: [
-				'**/*.work',
-				'**/*.LICENSE.txt'
-			],
-		}
-	),
-]);
-
-const minifiedOptimization = () => ({
-	minimize: true,
-	minimizer: [
-		new CssMinimizerPlugin(),
-	],
-});
-
-function minifiedOutputPath( destination ) {
-	return {
-		filename: `css/[name].work`,
-		path: destination,
-	};
-}
-
-const optimization = {
-	minimize: false
-};
-
-const plugins = [];
-
-function outputPath(destination) {
-	return {
-		filename: `css/build/[name].css`,
-		path: destination,
-	};
-}
-
-function minifiedLoaders() {
-	return [ MiniCssExtractPlugin.loader, 'css-loader' ];
-}
-
-const loaders = [ 'css-loader' ];
-
-function transformCssEntry( destination, isProduction, minify = false ) {
+function transformCssEntry( destination, isProduction ) {
 	return ( filename ) => {
 		const entry = {};
 		entry[ path.parse( filename ).name ] = filename;
 		const config = {
 			entry: entry,
-			output: minify ? minifiedOutputPath( destination ) : outputPath( destination ),
-			plugins: minify ? minifiedPlugins() : plugins,
+			output: {
+				filename: `[name].work`,
+				path: destination,
+			},
+			plugins: [
+				new MiniCssExtractPlugin(
+					{
+						filename: `[name].min.css`
+					}
+				),
+				new CleanWebpackPlugin(
+					{
+						dry: false,
+						verbose: false,
+						cleanOnceBeforeBuildPatterns: [],
+						cleanAfterEveryBuildPatterns: [
+							'**/*.work',
+							'**/*.LICENSE.txt'
+						],
+					}
+				),
+				new CopyPlugin(
+					{
+						patterns: [
+							{ from: filename, to: destination }
+						]
+					}
+				)
+			],
 			module: {
 				rules: [
 					{
 						test: /\.css$/i,
-						use: minify ? minifiedLoaders() : loaders,
+						use: [ MiniCssExtractPlugin.loader, 'css-loader' ],
 					},
 				],
 			},
 			devtool: !isProduction ? 'source-map' : false,
-			optimization: minify ? minifiedOptimization() : optimization,
+			optimization: {
+				minimize: true,
+				minimizer: [
+					new CssMinimizerPlugin(),
+				],
+			},
 		};
 		return config;
 	};
 }
 
 module.exports = { transformCssEntry };
+
