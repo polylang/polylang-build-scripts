@@ -38,8 +38,7 @@ function transformCssEntry( destination, isProduction ) {
 						verbose: false,
 						cleanOnceBeforeBuildPatterns: [],
 						cleanAfterEveryBuildPatterns: [
-							'**/*.work',
-							'**/*.LICENSE.txt'
+							path.join(process.cwd(), '**/*.work')
 						],
 					}
 				),
@@ -74,3 +73,4 @@ function transformCssEntry( destination, isProduction ) {
 }
 
 module.exports = { transformCssEntry };
+

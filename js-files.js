@@ -6,6 +6,12 @@
  * External dependencies
  */
 const path = require( 'path' );
+
+/**
+ * Peer dependencies
+ * These need to be installed in the consuming package.
+ */
+const { CleanWebpackPlugin } = require('clean-webpack-plugin');
 /**
  * Prepare webpack configuration to minify js files to source folder as target folder and suffix file name with .min.js extension.
  * @param {string[]} jsFileNames Source files to build.
@@ -23,6 +29,18 @@ const path = require( 'path' );
 		const config = {
 			entry: entry,
 			output: output,
+			plugins: [
+				new CleanWebpackPlugin(
+					{
+						dry: false,
+						verbose: false,
+						cleanOnceBeforeBuildPatterns: [],
+						cleanAfterEveryBuildPatterns: [
+							path.join( process.cwd(), '**/*.LICENSE.txt')
+						]
+					}
+				)
+			],
 			optimization: { minimize: minimize }
 		};
 		return config;
@@ -30,3 +48,4 @@ const path = require( 'path' );
 }
 
 module.exports = { transformJsEntry };
+
