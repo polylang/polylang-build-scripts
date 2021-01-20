@@ -6,6 +6,11 @@
  * External dependencies.
  */
 const path = require( 'path' );
+
+/**
+ * Peer dependencies.
+ * These have to be installed in the consumer package.
+ */
 const MiniCssExtractPlugin = require( 'mini-css-extract-plugin' );
 const CssMinimizerPlugin = require( 'css-minimizer-webpack-plugin' );
 const { CleanWebpackPlugin } = require( 'clean-webpack-plugin' );
@@ -58,7 +63,9 @@ function transformCssEntry( destination, isProduction ) {
 			optimization: {
 				minimize: true,
 				minimizer: [
-					new CssMinimizerPlugin(),
+					new CssMinimizerPlugin({
+						test: /\.min\.css$/i
+					}),
 				],
 			},
 		};
@@ -67,4 +74,3 @@ function transformCssEntry( destination, isProduction ) {
 }
 
 module.exports = { transformCssEntry };
-
