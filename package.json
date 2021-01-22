@@ -1,6 +1,6 @@
 {
   "name": "@wpsyntex/polylang-build-scripts",
-  "version": "2.0.2",
+  "version": "2.0.3",
   "description": "Contains the scripts needed to build Polylang",
   "repository": {
     "type": "git",
@@ -23,6 +23,7 @@
     "mini-css-extract-plugin": "*",
     "css-minimizer-webpack-plugin": "*",
     "clean-webpack-plugin": "*",
-    "copy-webpack-plugin": "*"
+    "copy-webpack-plugin": "*",
+    "terser-webpack-plugin": "*"
   }
 }
