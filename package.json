@@ -19,11 +19,19 @@
   "dependencies": {
     "path": "^0.12.7"
   },
-  "peerDependencies": {
-    "mini-css-extract-plugin": "*",
-    "css-minimizer-webpack-plugin": "*",
-    "clean-webpack-plugin": "*",
-    "copy-webpack-plugin": "*",
-    "terser-webpack-plugin": "*"
+  "scripts": {
+    "test": "wp-scripts test-unit-js",
+    "lint": "wp-scripts lint-js"
+  },
+	"peerDependencies": {
+		"clean-webpack-plugin": "*",
+		"copy-webpack-plugin": "*",
+		"css-minimizer-webpack-plugin": "*",
+		"glob": "*",
+		"mini-css-extract-plugin": "*",
+		"terser-webpack-plugin": "*"
+	},
+  "devDependencies": {
+    "@wordpress/scripts": "^31.4.0"
   }
 }

@@ -9,7 +9,6 @@ const path = require( 'path' );
 
 /**
  * Peer dependencies.
- * These have to be installed in the consumer package.
  */
 const MiniCssExtractPlugin = require( 'mini-css-extract-plugin' );
 const CssMinimizerPlugin = require( 'css-minimizer-webpack-plugin' );

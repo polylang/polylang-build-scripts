@@ -9,7 +9,6 @@ const path = require( 'path' );
 
 /**
  * Peer dependencies
- * These need to be installed in the consuming package.
  */
 const TerserPlugin = require( 'terser-webpack-plugin' );
 
