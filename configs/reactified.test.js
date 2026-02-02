@@ -126,9 +126,7 @@ describe( 'getReactifiedConfig', () => {
 			expect( config.externals.lodash ).toBe( 'lodash' );
 			expect( config.externals.moment ).toBe( 'moment' );
 			// Should not include deps not in the provided list
-			expect(
-				config.externals[ 'jQuery' ]
-			).toBeUndefined();
+			expect( config.externals.jQuery ).toBeUndefined();
 		} );
 	} );
 

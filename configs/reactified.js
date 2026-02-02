@@ -17,7 +17,7 @@ const camelCaseDash = ( string ) => {
 	return string.replace( /-([a-z])/g, ( match, letter ) =>
 		letter.toUpperCase()
 	);
-}
+};
 
 /**
  * Generate webpack configuration for React-based builds (blocks, editors).
@@ -131,6 +131,6 @@ const getReactifiedConfig = ( {
 	};
 
 	return [ minifiedConfig, unminifiedConfig ];
-}
+};
 
 module.exports = { getReactifiedConfig };

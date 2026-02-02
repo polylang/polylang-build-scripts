@@ -1,8 +1,4 @@
 /**
- * @package Polylang
- */
-
-/**
  * External dependencies
  */
 const path = require( 'path' );
@@ -14,29 +10,31 @@ const TerserPlugin = require( 'terser-webpack-plugin' );
 
 /**
  * Prepare webpack configuration to minify js files to source folder as target folder and suffix file name with .min.js extension.
- * @param {string[]} jsFileNames Source files to build.
- * @param {boolean} minimize True to generate minified files.
+ *
+ * @param {string}  destination Output directory for the built files.
+ * @param {boolean} minimize    True to generate minified files.
  */
- function transformJsEntry( destination, minimize = false ) {
+function transformJsEntry( destination, minimize = false ) {
 	return ( filename ) => {
 		const entry = {};
 		entry[ path.parse( filename ).name ] = filename;
 		const output = {
-			filename: `${path.parse( filename ).name}${minimize ? '.min' : '' }.js`,
+			filename: `${ path.parse( filename ).name }${
+				minimize ? '.min' : ''
+			}.js`,
 			path: destination,
 			iife: false, // Avoid Webpack to wrap files into a IIFE which is not needed for this kind of javascript files.
 		};
 		const config = {
-			entry: entry,
-			output: output,
+			entry,
+			output,
 			optimization: {
-				minimize: minimize,
-				minimizer: [ new TerserPlugin( { extractComments: false } ) ]
-			}
+				minimize,
+				minimizer: [ new TerserPlugin( { extractComments: false } ) ],
+			},
 		};
 		return config;
-	}
+	};
 }
 
 module.exports = { transformJsEntry };
-
