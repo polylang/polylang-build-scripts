@@ -238,4 +238,312 @@ describe( 'getReactifiedConfig', () => {
 			expect( config.entry ).toEqual( entryPoints );
 		} );
 	} );
+
+	describe( 'SASS processing', () => {
+		it( 'should not include SASS rules when sassLoadPaths is empty', () => {
+			const configs = getReactifiedConfig( baseOptions );
+
+			configs.forEach( ( config ) => {
+				const sassRule = config.module.rules.find(
+					( rule ) =>
+						rule.test &&
+						rule.test.toString() === /\.s?css$/.toString()
+				);
+
+				expect( sassRule ).toBeUndefined();
+			} );
+		} );
+
+		it( 'should include SASS rules when sassLoadPaths is provided', () => {
+			const entryPoints = {
+				blocks: './js/src/blocks/index.js',
+				styles: './css/src/styles.scss',
+			};
+
+			const configs = getReactifiedConfig( {
+				...baseOptions,
+				entryPoints,
+				sassLoadPaths: [ './css/src' ],
+			} );
+
+			configs.forEach( ( config ) => {
+				const sassRule = config.module.rules.find(
+					( rule ) =>
+						rule.test &&
+						rule.test.toString() === /\.s?css$/.toString()
+				);
+
+				expect( sassRule ).toBeDefined();
+				expect( sassRule.use ).toHaveLength( 3 );
+			} );
+		} );
+
+		it( 'should not include SASS rules when sassLoadPaths not provided even with SASS entry points', () => {
+			const entryPoints = {
+				blocks: './js/src/blocks/index.js',
+				styles: './css/src/styles.scss',
+			};
+
+			const configs = getReactifiedConfig( {
+				...baseOptions,
+				entryPoints,
+			} );
+
+			configs.forEach( ( config ) => {
+				const sassRule = config.module.rules.find(
+					( rule ) =>
+						rule.test &&
+						rule.test.toString() === /\.s?css$/.toString()
+				);
+
+				expect( sassRule ).toBeUndefined();
+			} );
+		} );
+
+		it( 'should pass sassLoadPaths to SASS loader options', () => {
+			const entryPoints = {
+				blocks: './js/src/blocks/index.js',
+				styles: './css/src/styles.scss',
+			};
+
+			const sassLoadPaths = [
+				'/test/path/components',
+				'/test/path/utilities',
+			];
+
+			const configs = getReactifiedConfig( {
+				...baseOptions,
+				entryPoints,
+				sassLoadPaths,
+			} );
+
+			configs.forEach( ( config ) => {
+				const sassRule = config.module.rules.find(
+					( rule ) =>
+						rule.test &&
+						rule.test.toString() === /\.s?css$/.toString()
+				);
+
+				expect( sassRule ).toBeDefined();
+
+				const sassLoader = sassRule.use.find(
+					( loader ) =>
+						typeof loader === 'object' &&
+						loader.loader === 'sass-loader'
+				);
+
+				expect( sassLoader ).toBeDefined();
+				expect( sassLoader.options.sassOptions.loadPaths ).toEqual(
+					sassLoadPaths
+				);
+			} );
+		} );
+
+		it( 'should keep all entry points including SASS files when sassLoadPaths provided', () => {
+			const entryPoints = {
+				blocks: './js/src/blocks/index.js',
+				styles: './css/src/styles.scss',
+			};
+
+			const configs = getReactifiedConfig( {
+				...baseOptions,
+				entryPoints,
+				sassLoadPaths: [ './css/src' ],
+			} );
+
+			configs.forEach( ( config ) => {
+				expect( config.entry ).toEqual( entryPoints );
+			} );
+		} );
+
+		it( 'should use provided sassLoadPaths with multiple paths', () => {
+			const entryPoints = {
+				blocks: './js/src/blocks/index.js',
+				editorStyles: './css/src/editor/main.scss',
+			};
+
+			const sassLoadPaths = [
+				'./css/src/editor',
+				'./css/src/blocks',
+				'./css/src/components',
+			];
+
+			const configs = getReactifiedConfig( {
+				...baseOptions,
+				entryPoints,
+				sassLoadPaths,
+			} );
+
+			configs.forEach( ( config ) => {
+				const sassRule = config.module.rules.find(
+					( rule ) =>
+						rule.test &&
+						rule.test.toString() === /\.s?css$/.toString()
+				);
+
+				const sassLoader = sassRule.use.find(
+					( loader ) =>
+						typeof loader === 'object' &&
+						loader.loader === 'sass-loader'
+				);
+
+				expect( sassLoader.options.sassOptions.loadPaths ).toEqual(
+					sassLoadPaths
+				);
+			} );
+		} );
+
+		it( 'should configure compressed outputStyle for minified config', () => {
+			const entryPoints = {
+				styles: './css/src/styles.scss',
+			};
+
+			const configs = getReactifiedConfig( {
+				...baseOptions,
+				entryPoints,
+				sassLoadPaths: [ './css/src' ],
+			} );
+
+			const [ minified ] = configs;
+			const sassRule = minified.module.rules.find(
+				( rule ) =>
+					rule.test && rule.test.toString() === /\.s?css$/.toString()
+			);
+
+			const sassLoader = sassRule.use.find(
+				( loader ) =>
+					typeof loader === 'object' &&
+					loader.loader === 'sass-loader'
+			);
+
+			expect( sassLoader.options.sassOptions.outputStyle ).toBe(
+				'compressed'
+			);
+		} );
+
+		it( 'should configure expanded outputStyle for unminified config', () => {
+			const entryPoints = {
+				styles: './css/src/styles.scss',
+			};
+
+			const configs = getReactifiedConfig( {
+				...baseOptions,
+				entryPoints,
+				sassLoadPaths: [ './css/src' ],
+			} );
+
+			const [ , unminified ] = configs;
+			const sassRule = unminified.module.rules.find(
+				( rule ) =>
+					rule.test && rule.test.toString() === /\.s?css$/.toString()
+			);
+
+			const sassLoader = sassRule.use.find(
+				( loader ) =>
+					typeof loader === 'object' &&
+					loader.loader === 'sass-loader'
+			);
+
+			expect( sassLoader.options.sassOptions.outputStyle ).toBe(
+				'expanded'
+			);
+		} );
+
+		it( 'should enable source maps in SASS loader when not in production', () => {
+			const entryPoints = {
+				styles: './css/src/styles.scss',
+			};
+
+			const configs = getReactifiedConfig( {
+				...baseOptions,
+				entryPoints,
+				sassLoadPaths: [ './css/src' ],
+				isProduction: false,
+			} );
+
+			configs.forEach( ( config ) => {
+				const sassRule = config.module.rules.find(
+					( rule ) =>
+						rule.test &&
+						rule.test.toString() === /\.s?css$/.toString()
+				);
+
+				const sassLoader = sassRule.use.find(
+					( loader ) =>
+						typeof loader === 'object' &&
+						loader.loader === 'sass-loader'
+				);
+
+				expect( sassLoader.options.sassOptions.sourceMap ).toBe( true );
+			} );
+		} );
+
+		it( 'should disable source maps in SASS loader when in production', () => {
+			const entryPoints = {
+				styles: './css/src/styles.scss',
+			};
+
+			const configs = getReactifiedConfig( {
+				...baseOptions,
+				entryPoints,
+				sassLoadPaths: [ './css/src' ],
+				isProduction: true,
+			} );
+
+			configs.forEach( ( config ) => {
+				const sassRule = config.module.rules.find(
+					( rule ) =>
+						rule.test &&
+						rule.test.toString() === /\.s?css$/.toString()
+				);
+
+				const sassLoader = sassRule.use.find(
+					( loader ) =>
+						typeof loader === 'object' &&
+						loader.loader === 'sass-loader'
+				);
+
+				expect( sassLoader.options.sassOptions.sourceMap ).toBe(
+					false
+				);
+			} );
+		} );
+
+		it( 'should handle mixed array and string entry points with custom loadPaths', () => {
+			const entryPoints = {
+				blocks: [ './css/src/blocks.scss', './js/src/blocks/index.js' ],
+				editor: './js/src/editor/index.js',
+				theme: './css/src/theme.scss',
+			};
+
+			const sassLoadPaths = [ './css/src' ];
+
+			const configs = getReactifiedConfig( {
+				...baseOptions,
+				entryPoints,
+				sassLoadPaths,
+			} );
+
+			configs.forEach( ( config ) => {
+				const sassRule = config.module.rules.find(
+					( rule ) =>
+						rule.test &&
+						rule.test.toString() === /\.s?css$/.toString()
+				);
+
+				const sassLoader = sassRule.use.find(
+					( loader ) =>
+						typeof loader === 'object' &&
+						loader.loader === 'sass-loader'
+				);
+
+				expect( sassLoader.options.sassOptions.loadPaths ).toEqual(
+					sassLoadPaths
+				);
+
+				// Verify entry points are kept as-is
+				expect( config.entry ).toEqual( entryPoints );
+			} );
+		} );
+	} );
 } );

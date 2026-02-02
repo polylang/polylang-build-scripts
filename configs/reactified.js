@@ -29,6 +29,7 @@ const camelCaseDash = ( string ) => {
  * @param {boolean}  options.isProduction          Whether to enable production mode optimizations.
  * @param {string[]} options.wpDependencies        WordPress package dependencies to mark as externals.
  * @param {Object}   [options.additionalExternals] Additional external dependencies.
+ * @param {string[]} [options.sassLoadPaths]       Custom load paths for SASS imports.
  * @return {Object[]} Array of webpack configurations (minified and unminified).
  */
 const getReactifiedConfig = ( {
@@ -38,6 +39,7 @@ const getReactifiedConfig = ( {
 	isProduction,
 	wpDependencies,
 	additionalExternals = {},
+	sassLoadPaths = [],
 } ) => {
 	const externals = {
 		react: 'React',
@@ -88,6 +90,52 @@ const getReactifiedConfig = ( {
 		},
 	];
 
+	const sassRulesMinified =
+		sassLoadPaths.length > 0
+			? [
+					{
+						test: /\.s?css$/,
+						use: [
+							MiniCssExtractPlugin.loader,
+							'css-loader',
+							{
+								loader: 'sass-loader',
+								options: {
+									sassOptions: {
+										loadPaths: sassLoadPaths,
+										outputStyle: 'compressed',
+										sourceMap: ! isProduction,
+									},
+								},
+							},
+						],
+					},
+			  ]
+			: [];
+
+	const sassRulesUnminified =
+		sassLoadPaths.length > 0
+			? [
+					{
+						test: /\.s?css$/,
+						use: [
+							MiniCssExtractPlugin.loader,
+							'css-loader',
+							{
+								loader: 'sass-loader',
+								options: {
+									sassOptions: {
+										loadPaths: sassLoadPaths,
+										outputStyle: 'expanded',
+										sourceMap: ! isProduction,
+									},
+								},
+							},
+						],
+					},
+			  ]
+			: [];
+
 	const minifiedConfig = {
 		entry: entryPoints,
 		output: Object.assign(
@@ -98,7 +146,7 @@ const getReactifiedConfig = ( {
 		externals,
 		resolve,
 		module: {
-			rules: transpilationRules,
+			rules: [ ...transpilationRules, ...sassRulesMinified ],
 		},
 		plugins: [
 			new MiniCssExtractPlugin( {
@@ -119,7 +167,7 @@ const getReactifiedConfig = ( {
 		externals,
 		resolve,
 		module: {
-			rules: transpilationRules,
+			rules: [ ...transpilationRules, ...sassRulesUnminified ],
 		},
 		plugins: [
 			new MiniCssExtractPlugin( {

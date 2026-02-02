@@ -6,7 +6,8 @@ const glob = require( 'glob' ).sync;
 /**
  * Internal dependencies.
  */
-const { transformCssEntry, transformJsEntry } = require( '../main' );
+const { transformJsEntry } = require( '../transformers/js.js' );
+const { transformCssEntry } = require( '../transformers/css.js' );
 
 /**
  * Generate webpack configuration for vanilla JS and CSS files.
