@@ -20,6 +20,91 @@ const camelCaseDash = ( string ) => {
 };
 
 /**
+ * Returns the SASS rules for the given load paths, source map, and output style.
+ *
+ * @param {string[]} loadPaths   Custom load paths for SASS imports.
+ * @param {boolean}  sourceMap   Whether to enable source maps.
+ * @param {string}   outputStyle The output style of the SASS files.
+ * @return {Object[]} The SASS rules.
+ */
+const getSassRules = ( loadPaths, sourceMap, outputStyle ) => {
+	if ( outputStyle !== 'compressed' && outputStyle !== 'expanded' ) {
+		throw new Error(
+			'Invalid output style, must be "compressed" or "expanded"'
+		);
+	}
+
+	return loadPaths.length > 0
+		? [
+				{
+					test: /\.s?css$/,
+					use: [
+						MiniCssExtractPlugin.loader,
+						'css-loader',
+						{
+							loader: 'sass-loader',
+							options: {
+								sassOptions: {
+									loadPaths,
+									outputStyle,
+									sourceMap,
+								},
+							},
+						},
+					],
+				},
+		  ]
+		: [];
+};
+
+/**
+ * Returns the main configuration for the given arguments.
+ *
+ * @param {Object}   options              The options for the webpack configuration.
+ * @param {Object}   options.entry        The entry point for the webpack configuration.
+ * @param {Object}   options.outputConfig The output configuration for the webpack configuration.
+ * @param {Object}   options.optimization The optimization configuration for the webpack configuration.
+ * @param {Object}   options.externals    The externals configuration for the webpack configuration.
+ * @param {Object}   options.resolve      The resolve configuration for the webpack configuration.
+ * @param {Object}   options.devtool      The devtool configuration for the webpack configuration.
+ * @param {Object[]} options.moduleRules  The module rules for the webpack configuration.
+ * @return {Object} The main configuration for the webpack configuration.
+ */
+const getMainConfig = ( {
+	entry,
+	outputConfig,
+	optimization,
+	externals,
+	resolve,
+	devtool,
+	moduleRules,
+} ) => {
+	const jsFilename = optimization.minimize
+		? './js/build/[name].min.js'
+		: './js/build/[name].js';
+	const cssFilename = optimization.minimize
+		? './css/build/style.min.css'
+		: './css/build/style.css';
+
+	return {
+		entry,
+		output: Object.assign( {}, { filename: jsFilename }, outputConfig ),
+		externals,
+		resolve,
+		module: {
+			rules: [ ...moduleRules ],
+		},
+		plugins: [
+			new MiniCssExtractPlugin( {
+				filename: cssFilename,
+			} ),
+		],
+		devtool,
+		optimization,
+	};
+};
+
+/**
  * Generate webpack configuration for React-based builds (blocks, editors).
  *
  * @param {Object}   options                       Configuration options.
@@ -90,93 +175,35 @@ const getReactifiedConfig = ( {
 		},
 	];
 
-	const sassRulesMinified =
-		sassLoadPaths.length > 0
-			? [
-					{
-						test: /\.s?css$/,
-						use: [
-							MiniCssExtractPlugin.loader,
-							'css-loader',
-							{
-								loader: 'sass-loader',
-								options: {
-									sassOptions: {
-										loadPaths: sassLoadPaths,
-										outputStyle: 'compressed',
-										sourceMap: ! isProduction,
-									},
-								},
-							},
-						],
-					},
-			  ]
-			: [];
+	const sassRulesMinified = getSassRules(
+		sassLoadPaths,
+		! isProduction,
+		'compressed'
+	);
+	const sassRulesUnminified = getSassRules(
+		sassLoadPaths,
+		! isProduction,
+		'expanded'
+	);
 
-	const sassRulesUnminified =
-		sassLoadPaths.length > 0
-			? [
-					{
-						test: /\.s?css$/,
-						use: [
-							MiniCssExtractPlugin.loader,
-							'css-loader',
-							{
-								loader: 'sass-loader',
-								options: {
-									sassOptions: {
-										loadPaths: sassLoadPaths,
-										outputStyle: 'expanded',
-										sourceMap: ! isProduction,
-									},
-								},
-							},
-						],
-					},
-			  ]
-			: [];
-
-	const minifiedConfig = {
+	const minifiedConfig = getMainConfig( {
 		entry: entryPoints,
-		output: Object.assign(
-			{},
-			{ filename: './js/build/[name].min.js' },
-			outputConfig
-		),
-		externals,
-		resolve,
-		module: {
-			rules: [ ...transpilationRules, ...sassRulesMinified ],
-		},
-		plugins: [
-			new MiniCssExtractPlugin( {
-				filename: './css/build/style.min.css',
-			} ),
-		],
-		devtool,
+		outputConfig,
 		optimization: minimizeOptimizationConfig,
-	};
-
-	const unminifiedConfig = {
-		entry: entryPoints,
-		output: Object.assign(
-			{},
-			{ filename: './js/build/[name].js' },
-			outputConfig
-		),
 		externals,
 		resolve,
-		module: {
-			rules: [ ...transpilationRules, ...sassRulesUnminified ],
-		},
-		plugins: [
-			new MiniCssExtractPlugin( {
-				filename: './css/build/style.css',
-			} ),
-		],
 		devtool,
+		moduleRules: [ ...transpilationRules, ...sassRulesMinified ],
+	} );
+	const unminifiedConfig = getMainConfig( {
+		entry: entryPoints,
+		outputConfig,
 		optimization: unMinimizeOptimizationConfig,
-	};
+		externals,
+		resolve,
+		devtool,
+		moduleRules: [ ...transpilationRules, ...sassRulesUnminified ],
+	} );
 
 	return [ minifiedConfig, unminifiedConfig ];
 };

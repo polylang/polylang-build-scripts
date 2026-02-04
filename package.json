@@ -29,7 +29,8 @@
 		"css-minimizer-webpack-plugin": "*",
 		"glob": "*",
 		"mini-css-extract-plugin": "*",
-		"terser-webpack-plugin": "*"
+		"terser-webpack-plugin": "*",
+    "sass-loader": "*"
 	},
   "devDependencies": {
     "@wordpress/scripts": "^31.4.0"
