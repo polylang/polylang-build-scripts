@@ -36,7 +36,11 @@
   },
   "scripts": {
     "test": "wp-scripts test-unit-js",
-    "lint": "wp-scripts lint-js"
+    "lint": "wp-scripts lint-js",
+    "prepublishOnly": "npm run lint && npm run test"
+  },
+  "publishConfig": {
+    "access": "public"
   },
   "devDependencies": {
     "@wordpress/scripts": "^32.6.0"

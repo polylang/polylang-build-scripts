@@ -6,19 +6,8 @@ on:
   workflow_dispatch:
 
 jobs:
-  typos:
-    uses: ./.github/workflows/typos.yml
-
-  eslint:
-    uses: ./.github/workflows/eslint.yml
-
-  unit-tests:
-    uses: ./.github/workflows/unit-tests.yml
-
   publish:
     name: Publish @wpsyntex/polylang-build-scripts
-
-    needs: [typos, eslint, unit-tests]
 
     runs-on: ubuntu-latest
 
