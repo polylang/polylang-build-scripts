@@ -8,6 +8,14 @@ Webpack configuration helpers for building Polylang projects. Provides two main 
 npm install @wpsyntex/polylang-build-scripts
 ```
 
+Install the peer dependencies in the consumer project (versions below are the minimum supported):
+
+```bash
+npm install -D clean-webpack-plugin copy-webpack-plugin css-loader css-minimizer-webpack-plugin glob mini-css-extract-plugin terser-webpack-plugin webpack webpack-cli
+```
+
+Add `sass` and `sass-loader` when using `getReactifiedConfig` with `sassLoadPaths`.
+
 ## getVanillaConfig
 
 Generates webpack configurations for vanilla JS and CSS files. Creates both minified and unminified versions.
