@@ -9,15 +9,15 @@ const path = require( 'path' );
 const MiniCssExtractPlugin = require( 'mini-css-extract-plugin' );
 const CssMinimizerPlugin = require( 'css-minimizer-webpack-plugin' );
 const { CleanWebpackPlugin } = require( 'clean-webpack-plugin' );
-const CopyPlugin = require( 'copy-webpack-plugin' );
 
 /**
- * Prepare webpack configuration to minify css files to source folder as target folder and suffix file name with .min.css extension.
+ * Prepare webpack configuration to build css files with resolved @import statements.
  *
  * @param {string}  destination  Output directory for the built files.
- * @param {boolean} isProduction True to generate minified files.
+ * @param {boolean} minimize     True to generate minified files.
+ * @param {boolean} isProduction True when building in production mode.
  */
-function transformCssEntry( destination, isProduction ) {
+function transformCssEntry( destination, minimize, isProduction ) {
 	return ( filename ) => {
 		const entry = {};
 		entry[ path.parse( filename ).name ] = filename;
@@ -29,7 +29,7 @@ function transformCssEntry( destination, isProduction ) {
 			},
 			plugins: [
 				new MiniCssExtractPlugin( {
-					filename: `[name].min.css`,
+					filename: minimize ? `[name].min.css` : `[name].css`,
 				} ),
 				new CleanWebpackPlugin( {
 					dry: false,
@@ -38,9 +38,6 @@ function transformCssEntry( destination, isProduction ) {
 					cleanAfterEveryBuildPatterns: [
 						path.join( process.cwd(), '**/*.work' ),
 					],
-				} ),
-				new CopyPlugin( {
-					patterns: [ { from: filename, to: destination } ],
 				} ),
 			],
 			module: {
@@ -51,14 +48,17 @@ function transformCssEntry( destination, isProduction ) {
 					},
 				],
 			},
-			devtool: ! isProduction ? 'source-map' : false,
+			devtool:
+				! minimize && ! isProduction ? 'source-map' : false,
 			optimization: {
-				minimize: true,
-				minimizer: [
-					new CssMinimizerPlugin( {
-						test: /\.min\.css$/i,
-					} ),
-				],
+				minimize,
+				minimizer: minimize
+					? [
+							new CssMinimizerPlugin( {
+								test: /\.min\.css$/i,
+							} ),
+						]
+					: [],
 			},
 		};
 		return config;
