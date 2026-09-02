@@ -12,3 +12,15 @@ updates:
       timezone: Europe/Paris
     allow:
       - dependency-type: production
+      - dependency-type: development
+        update-types:
+          - version-update:semver-minor
+          - version-update:semver-patch
+    groups:
+      dev-tools:
+        patterns:
+          - "@wordpress/eslint-plugin"
+          - "@wordpress/prettier-config"
+          - eslint
+          - jest
+          - prettier
