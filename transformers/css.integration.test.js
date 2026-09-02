@@ -24,9 +24,7 @@ describe( 'transformCssEntry integration', () => {
 				}
 
 				if ( stats.hasErrors() ) {
-					reject(
-						new Error( stats.toString( { colors: false } ) )
-					);
+					reject( new Error( stats.toString( { colors: false } ) ) );
 					return;
 				}
 
@@ -41,9 +39,7 @@ describe( 'transformCssEntry integration', () => {
 
 		try {
 			await runWebpack(
-				transformCssEntry( outputDirectory, false, true )(
-					entryFile
-				)
+				transformCssEntry( outputDirectory, false, true )( entryFile )
 			);
 			await runWebpack(
 				transformCssEntry( outputDirectory, true, true )( entryFile )
@@ -64,9 +60,9 @@ describe( 'transformCssEntry integration', () => {
 			expect( minifiedCss ).toContain( '.partial' );
 			expect( unminifiedCss ).toContain( '.entry' );
 			expect( minifiedCss ).toContain( '.entry' );
-			expect(
-				fs.existsSync( path.join( outputDirectory, 'lib' ) )
-			).toBe( false );
+			expect( fs.existsSync( path.join( outputDirectory, 'lib' ) ) ).toBe(
+				false
+			);
 		} finally {
 			fs.rmSync( outputDirectory, { recursive: true, force: true } );
 		}

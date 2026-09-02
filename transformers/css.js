@@ -48,8 +48,7 @@ function transformCssEntry( destination, minimize, isProduction ) {
 					},
 				],
 			},
-			devtool:
-				! minimize && ! isProduction ? 'source-map' : false,
+			devtool: ! minimize && ! isProduction ? 'source-map' : false,
 			optimization: {
 				minimize,
 				minimizer: minimize
@@ -57,7 +56,7 @@ function transformCssEntry( destination, minimize, isProduction ) {
 							new CssMinimizerPlugin( {
 								test: /\.min\.css$/i,
 							} ),
-						]
+					  ]
 					: [],
 			},
 		};

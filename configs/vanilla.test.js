@@ -33,8 +33,7 @@ jest.mock( '../main', () => {
 				optimization: {
 					minimize,
 				},
-				devtool:
-					! minimize && ! isProduction ? 'source-map' : false,
+				devtool: ! minimize && ! isProduction ? 'source-map' : false,
 			} );
 		} ),
 	};
