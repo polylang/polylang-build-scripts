@@ -1,0 +1,26 @@
+# Same schedule across Polylang plugins; Dependabot does not sync versions between repos.
+# allow — if a package does not match, Dependabot does not open a version PR or a security PR for it.
+# Dependabot does not version-bump peerDependencies; only dependencies are covered here.
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "07:00"
+      timezone: Europe/Paris
+    allow:
+      - dependency-type: production
+      - dependency-type: development
+        update-types:
+          - version-update:semver-minor
+          - version-update:semver-patch
+    groups:
+      dev-tools:
+        patterns:
+          - "@wordpress/eslint-plugin"
+          - "@wordpress/prettier-config"
+          - eslint
+          - jest
+          - prettier
