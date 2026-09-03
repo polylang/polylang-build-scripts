@@ -23,14 +23,17 @@ jest.mock( '../main', () => {
 				},
 			} );
 		} ),
-		transformCssEntry: jest.fn( ( destination, isProduction ) => {
+		transformCssEntry: jest.fn( ( destination, minimize, isProduction ) => {
 			return ( filename ) => ( {
 				entry: { [ mockPath.parse( filename ).name ]: filename },
 				output: {
 					filename: '[name].work',
 					path: destination,
 				},
-				devtool: ! isProduction ? 'source-map' : false,
+				optimization: {
+					minimize,
+				},
+				devtool: ! minimize && ! isProduction ? 'source-map' : false,
 			} );
 		} ),
 	};
@@ -209,7 +212,7 @@ describe( 'getVanillaConfig', () => {
 		expect( unminifiedJsConfigs ).toHaveLength( 2 );
 	} );
 
-	it( 'should create CSS configs with proper settings', () => {
+	it( 'should create both minified and unminified configs for CSS files', () => {
 		glob.sync.mockImplementation( ( pattern ) => {
 			if ( pattern === '**/*.css' ) {
 				return [ 'admin/style.css', 'frontend/style.css' ];
@@ -228,9 +231,18 @@ describe( 'getVanillaConfig', () => {
 		const cssConfigs = configs.filter(
 			( config ) => config.output.filename === '[name].work'
 		);
-		expect( cssConfigs ).toHaveLength( 2 );
+		expect( cssConfigs ).toHaveLength( 4 );
 
-		// Check CSS configs have correct output path
+		const unminifiedCssConfigs = cssConfigs.filter(
+			( config ) => config.optimization.minimize === false
+		);
+		const minifiedCssConfigs = cssConfigs.filter(
+			( config ) => config.optimization.minimize === true
+		);
+
+		expect( unminifiedCssConfigs ).toHaveLength( 2 );
+		expect( minifiedCssConfigs ).toHaveLength( 2 );
+
 		cssConfigs.forEach( ( config ) => {
 			expect( config.output.path ).toBe( cssBuildDirectory );
 		} );
@@ -307,10 +319,10 @@ describe( 'getVanillaConfig', () => {
 		const cssConfigs = configs.filter(
 			( config ) => config.output.filename === '[name].work'
 		);
-		expect( cssConfigs ).toHaveLength( 2 );
+		expect( cssConfigs ).toHaveLength( 4 );
 	} );
 
-	it( 'should pass isProduction flag to CSS transformer', () => {
+	it( 'should pass isProduction flag to unminified CSS transformer', () => {
 		glob.sync.mockImplementation( ( pattern ) => {
 			if ( pattern === '**/*.css' ) {
 				return [ 'style.css' ];
@@ -333,16 +345,26 @@ describe( 'getVanillaConfig', () => {
 			isProduction: false,
 		} );
 
-		// Check devtool setting (source maps enabled in dev mode)
-		const prodCssConfig = prodConfig.find(
-			( config ) => config.output.filename === '[name].work'
+		// Check devtool setting (source maps enabled in dev mode for unminified CSS only)
+		const prodUnminifiedCssConfig = prodConfig.find(
+			( config ) =>
+				config.output.filename === '[name].work' &&
+				config.optimization.minimize === false
 		);
-		const devCssConfig = devConfig.find(
-			( config ) => config.output.filename === '[name].work'
+		const devUnminifiedCssConfig = devConfig.find(
+			( config ) =>
+				config.output.filename === '[name].work' &&
+				config.optimization.minimize === false
+		);
+		const devMinifiedCssConfig = devConfig.find(
+			( config ) =>
+				config.output.filename === '[name].work' &&
+				config.optimization.minimize === true
 		);
 
-		expect( prodCssConfig.devtool ).toBe( false );
-		expect( devCssConfig.devtool ).toBe( 'source-map' );
+		expect( prodUnminifiedCssConfig.devtool ).toBe( false );
+		expect( devUnminifiedCssConfig.devtool ).toBe( 'source-map' );
+		expect( devMinifiedCssConfig.devtool ).toBe( false );
 	} );
 
 	it( 'should use correct build directories', () => {

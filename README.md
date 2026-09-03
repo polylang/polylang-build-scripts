@@ -11,7 +11,7 @@ npm install @wpsyntex/polylang-build-scripts
 Install the peer dependencies in the consumer project (versions below are the minimum supported):
 
 ```bash
-npm install -D clean-webpack-plugin copy-webpack-plugin css-loader css-minimizer-webpack-plugin glob mini-css-extract-plugin terser-webpack-plugin webpack webpack-cli
+npm install -D clean-webpack-plugin css-loader css-minimizer-webpack-plugin glob mini-css-extract-plugin terser-webpack-plugin webpack webpack-cli
 ```
 
 Add `sass` and `sass-loader` when using `getReactifiedConfig` with `sassLoadPaths`.

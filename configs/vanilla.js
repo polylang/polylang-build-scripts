@@ -52,7 +52,10 @@ const getVanillaConfig = ( {
 		...jsFileNames.map( transformJsEntry( jsBuildDirectory, false ) ),
 		...jsFileNames.map( transformJsEntry( jsBuildDirectory, true ) ),
 		...cssFileNames.map(
-			transformCssEntry( cssBuildDirectory, isProduction )
+			transformCssEntry( cssBuildDirectory, false, isProduction )
+		),
+		...cssFileNames.map(
+			transformCssEntry( cssBuildDirectory, true, isProduction )
 		),
 	];
 };
