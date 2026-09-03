@@ -56,10 +56,10 @@ describe( 'transformCssEntry integration', () => {
 
 			expect( unminifiedCss ).not.toContain( '@import' );
 			expect( minifiedCss ).not.toContain( '@import' );
-			expect( unminifiedCss ).toContain( '.partial' );
-			expect( minifiedCss ).toContain( '.partial' );
-			expect( unminifiedCss ).toContain( '.entry' );
-			expect( minifiedCss ).toContain( '.entry' );
+			expect( unminifiedCss ).toContain( '.partial {' );
+			expect( unminifiedCss ).toContain( '.entry {' );
+			expect( minifiedCss ).toContain( '.partial{' );
+			expect( minifiedCss ).toContain( '.entry{' );
 			expect( fs.existsSync( path.join( outputDirectory, 'lib' ) ) ).toBe(
 				false
 			);
