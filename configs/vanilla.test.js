@@ -445,6 +445,121 @@ describe( 'getVanillaConfig', () => {
 		expect( unminifiedConfig.optimization.minimize ).toBe( false );
 	} );
 
+	describe( 'bundled strategy', () => {
+		it( 'should return four configs for many JS and CSS files', () => {
+			glob.sync.mockImplementation( ( pattern ) => {
+				if ( pattern === '**/*.js' ) {
+					return Array.from(
+						{ length: 20 },
+						( _, index ) => `js/file-${ index }.js`
+					);
+				}
+				if ( pattern === '**/*.css' ) {
+					return Array.from(
+						{ length: 10 },
+						( _, index ) => `css/file-${ index }.css`
+					);
+				}
+
+				return [];
+			} );
+
+			const configs = getVanillaConfig( {
+				workingDirectory: testWorkingDirectory,
+				jsBuildDirectory,
+				cssBuildDirectory,
+				isProduction: true,
+				strategy: 'bundled',
+			} );
+
+			expect( configs ).toHaveLength( 4 );
+
+			const jsConfigs = configs.filter(
+				( config ) =>
+					config.output.filename.includes( '[name]' ) &&
+					config.output.filename.endsWith( '.js' )
+			);
+			const cssConfigs = configs.filter(
+				( config ) => config.output.filename === '[name].work'
+			);
+
+			expect( jsConfigs ).toHaveLength( 2 );
+			expect( cssConfigs ).toHaveLength( 2 );
+			expect( jsConfigs[ 0 ].entry ).toHaveProperty( 'js/file-0' );
+			expect( cssConfigs[ 0 ].entry ).toHaveProperty( 'css/file-0' );
+		} );
+
+		it( 'should use relative entry keys instead of basename-only keys', () => {
+			glob.sync.mockImplementation( ( pattern ) => {
+				if ( pattern === '**/*.js' ) {
+					return [ 'modules/admin/settings.js' ];
+				}
+
+				return [];
+			} );
+
+			const configs = getVanillaConfig( {
+				workingDirectory: testWorkingDirectory,
+				jsBuildDirectory,
+				cssBuildDirectory,
+				isProduction: true,
+				strategy: 'bundled',
+			} );
+
+			const jsConfig = configs.find(
+				( config ) => config.output.filename === '[name].js'
+			);
+
+			expect( jsConfig.entry ).toEqual( {
+				'modules/admin/settings': './modules/admin/settings.js',
+			} );
+			expect( jsConfig.context ).toBe( testWorkingDirectory );
+		} );
+
+		it( 'should scope CSS clean patterns to the output directory', () => {
+			glob.sync.mockImplementation( ( pattern ) => {
+				if ( pattern === '**/*.css' ) {
+					return [ 'admin/style.css' ];
+				}
+
+				return [];
+			} );
+
+			const configs = getVanillaConfig( {
+				workingDirectory: testWorkingDirectory,
+				jsBuildDirectory,
+				cssBuildDirectory,
+				isProduction: true,
+				strategy: 'bundled',
+			} );
+
+			const cssConfig = configs.find(
+				( config ) => config.output.filename === '[name].work'
+			);
+			const cleanPlugin = cssConfig.plugins.find(
+				( plugin ) => plugin.constructor.name === 'CleanWebpackPlugin'
+			);
+
+			expect( cleanPlugin.cleanAfterEveryBuildPatterns ).toEqual( [
+				`${ cssBuildDirectory }/**/*.work`,
+			] );
+		} );
+
+		it( 'should return an empty array when no files match', () => {
+			glob.sync.mockReturnValue( [] );
+
+			const configs = getVanillaConfig( {
+				workingDirectory: testWorkingDirectory,
+				jsBuildDirectory,
+				cssBuildDirectory,
+				isProduction: true,
+				strategy: 'bundled',
+			} );
+
+			expect( configs ).toEqual( [] );
+		} );
+	} );
+
 	it( 'should configure optimization for minified JS files', () => {
 		glob.sync.mockImplementation( ( pattern ) => {
 			if ( pattern === '**/*.js' ) {

@@ -6,8 +6,14 @@ const glob = require( 'glob' ).sync;
 /**
  * Internal dependencies.
  */
-const { transformJsEntry } = require( '../transformers/js.js' );
-const { transformCssEntry } = require( '../transformers/css.js' );
+const {
+	transformJsEntry,
+	createBundledJsConfig,
+} = require( '../transformers/js.js' );
+const {
+	transformCssEntry,
+	createBundledCssConfig,
+} = require( '../transformers/css.js' );
 
 /**
  * Generate webpack configuration for vanilla JS and CSS files.
@@ -22,6 +28,7 @@ const { transformCssEntry } = require( '../transformers/css.js' );
  * @param {string}   options.jsBuildDirectory    Output directory for JS files.
  * @param {string}   options.cssBuildDirectory   Output directory for CSS files.
  * @param {boolean}  options.isProduction        Whether to enable production mode optimizations.
+ * @param {string}   [options.strategy]          Build strategy: `'per-file'` (one config per file per variant, default) or `'bundled'` (four configs total: JS/CSS × min/unmin).
  * @return {Object[]} Array of webpack configurations.
  */
 const getVanillaConfig = ( {
@@ -33,6 +40,7 @@ const getVanillaConfig = ( {
 	jsBuildDirectory,
 	cssBuildDirectory,
 	isProduction,
+	strategy = 'per-file',
 } ) => {
 	const jsFileNames = jsPatterns.flatMap( ( pattern ) =>
 		glob( pattern, {
@@ -47,6 +55,48 @@ const getVanillaConfig = ( {
 			ignore: cssIgnorePatterns,
 		} ).map( ( filename ) => `./${ filename }` )
 	);
+
+	if ( strategy === 'bundled' ) {
+		const configs = [];
+
+		if ( jsFileNames.length > 0 ) {
+			configs.push(
+				createBundledJsConfig(
+					jsFileNames,
+					jsBuildDirectory,
+					false,
+					workingDirectory
+				),
+				createBundledJsConfig(
+					jsFileNames,
+					jsBuildDirectory,
+					true,
+					workingDirectory
+				)
+			);
+		}
+
+		if ( cssFileNames.length > 0 ) {
+			configs.push(
+				createBundledCssConfig(
+					cssFileNames,
+					cssBuildDirectory,
+					false,
+					isProduction,
+					workingDirectory
+				),
+				createBundledCssConfig(
+					cssFileNames,
+					cssBuildDirectory,
+					true,
+					isProduction,
+					workingDirectory
+				)
+			);
+		}
+
+		return configs;
+	}
 
 	return [
 		...jsFileNames.map( transformJsEntry( jsBuildDirectory, false ) ),
