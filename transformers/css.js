@@ -4,6 +4,11 @@
 const path = require( 'path' );
 
 /**
+ * Internal dependencies.
+ */
+const { getBundledEntryKey } = require( '../lib/entry-keys.js' );
+
+/**
  * Peer dependencies.
  */
 const MiniCssExtractPlugin = require( 'mini-css-extract-plugin' );
@@ -64,4 +69,70 @@ function transformCssEntry( destination, minimize, isProduction ) {
 	};
 }
 
-module.exports = { transformCssEntry };
+/**
+ * Build a single webpack config for all vanilla CSS entries (min or unmin).
+ *
+ * @param {string[]} fileNames    Relative entry paths.
+ * @param {string}   destination  Output directory.
+ * @param {boolean}  minimize     True to generate minified files.
+ * @param {boolean}  isProduction True when building in production mode.
+ * @param {string}   context      Webpack context (working directory).
+ * @return {Object} Webpack configuration.
+ */
+function createBundledCssConfig(
+	fileNames,
+	destination,
+	minimize,
+	isProduction,
+	context
+) {
+	const entry = Object.fromEntries(
+		fileNames.map( ( filename ) => [
+			getBundledEntryKey( filename ),
+			filename,
+		] )
+	);
+
+	return {
+		context,
+		entry,
+		output: {
+			filename: '[name].work',
+			path: destination,
+		},
+		plugins: [
+			new MiniCssExtractPlugin( {
+				filename: minimize ? '[name].min.css' : '[name].css',
+			} ),
+			new CleanWebpackPlugin( {
+				dry: false,
+				verbose: false,
+				cleanOnceBeforeBuildPatterns: [],
+				cleanAfterEveryBuildPatterns: [
+					path.join( destination, '**/*.work' ),
+				],
+			} ),
+		],
+		module: {
+			rules: [
+				{
+					test: /\.css$/i,
+					use: [ MiniCssExtractPlugin.loader, 'css-loader' ],
+				},
+			],
+		},
+		devtool: ! minimize && ! isProduction ? 'source-map' : false,
+		optimization: {
+			minimize,
+			minimizer: minimize
+				? [
+						new CssMinimizerPlugin( {
+							test: /\.min\.css$/i,
+						} ),
+				  ]
+				: [],
+		},
+	};
+}
+
+module.exports = { transformCssEntry, createBundledCssConfig };

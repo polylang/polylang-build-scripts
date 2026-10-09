@@ -20,6 +20,8 @@ Add `sass` and `sass-loader` when using `getReactifiedConfig` with `sassLoadPath
 
 Generates webpack configurations for vanilla JS and CSS files. Creates both minified and unminified versions.
 
+By default (`strategy: 'per-file'`), each source file gets its own webpack config per variant. With many files, webpack-cli runs them all in parallel via MultiCompiler, which increases peak memory and build time. Use `strategy: 'bundled'` to emit four configs total (JS min/unmin + CSS min/unmin) with multi-entry builds — recommended for projects with more than a handful of vanilla assets.
+
 **Required options:**
 - `workingDirectory` - Working directory for glob resolution (typically `__dirname`)
 - `jsBuildDirectory` - Output directory for JS files
@@ -27,10 +29,15 @@ Generates webpack configurations for vanilla JS and CSS files. Creates both mini
 - `isProduction` - Enable production mode optimizations
 
 **Optional options:**
+- `strategy` - `'per-file'` (default, backward compatible) or `'bundled'` (one config per asset type and variant)
 - `jsPatterns` - Glob patterns for JS files (default: `['**/*.js']`)
 - `jsIgnorePatterns` - Patterns to ignore for JS files (default: `[]`)
 - `cssPatterns` - Glob patterns for CSS files (default: `['**/*.css']`)
 - `cssIgnorePatterns` - Patterns to ignore for CSS files (default: `[]`)
+
+**Entry naming:** The legacy `per-file` strategy uses the file basename as the webpack entry key (`settings.js` → `settings`), so two files with the same name in different directories will collide. The `bundled` strategy uses stable relative keys (`./modules/admin/settings.js` → `modules/admin/settings`) and writes nested output paths (`modules/admin/settings.min.js`).
+
+**Glob scoping:** Keep `jsPatterns`, `cssPatterns`, and ignore lists tight so build scripts only pick up intended sources (for example, exclude `vendor/**/tmp/**`).
 
 **Example:**
 
@@ -39,6 +46,7 @@ const { getVanillaConfig } = require( '@wpsyntex/polylang-build-scripts' );
 
 const vanillaConfigs = getVanillaConfig( {
 	workingDirectory: __dirname,
+	strategy: 'bundled',
 	jsPatterns: [ '**/*.js' ],
 	jsIgnorePatterns: [ 'node_modules/**', '**/build/**', '**/*.min.js' ],
 	cssPatterns: [ '**/*.css' ],
@@ -89,6 +97,26 @@ const reactConfigs = getReactifiedConfig( {
 } );
 
 module.exports = reactConfigs;
+```
+
+## runWebpackConfigs
+
+Runs an array of webpack configs with optional concurrency limiting. Useful when combining many configs (for example, legacy per-file vanilla plus reactified builds) without letting webpack-cli spawn unbounded parallel compilations.
+
+```javascript
+const { runWebpackConfigs } = require( '@wpsyntex/polylang-build-scripts' );
+
+const configs = [
+	...getVanillaConfig( { /* options */ } ),
+	...getReactifiedConfig( { /* options */ } ),
+];
+
+runWebpackConfigs( configs, { concurrency: 2 } )
+	.then( () => console.log( 'Build complete' ) )
+	.catch( ( error ) => {
+		console.error( error );
+		process.exit( 1 );
+	} );
 ```
 
 ## Combined Usage
