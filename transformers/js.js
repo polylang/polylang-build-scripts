@@ -52,7 +52,7 @@ function transformJsEntry( destination, minimize = false ) {
  * @param {string}   destination               Output directory.
  * @param {boolean}  minimize                  True to generate minified files.
  * @param {string}   context                   Webpack context (working directory).
- * @param {string}   [entryKeyMode='relative'] `'relative'` or `'basename'` entry key mode.
+ * @param {string}   [entryKeyMode='basename'] `'basename'` or `'relative'` entry key mode.
  * @return {Object} Webpack configuration.
  */
 function createBundledJsConfig(
@@ -60,7 +60,7 @@ function createBundledJsConfig(
 	destination,
 	minimize,
 	context,
-	entryKeyMode = 'relative'
+	entryKeyMode = 'basename'
 ) {
 	const entry = buildBundledEntry(
 		fileNames,

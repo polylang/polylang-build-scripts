@@ -48,6 +48,7 @@ describe( 'getVanillaConfig bundled integration', () => {
 			cssBuildDirectory: cssOutputDirectory,
 			isProduction: true,
 			strategy: 'bundled',
+			entryKey: 'relative',
 		} );
 
 		expect( configs ).toHaveLength( 4 );
@@ -102,7 +103,7 @@ describe( 'getVanillaConfig bundled integration', () => {
 		}
 	} );
 
-	it( 'should build flat JS outputs when entryKey is basename', async () => {
+	it( 'should build flat JS outputs with default basename entry keys', async () => {
 		const jsOutputDirectory = path.join(
 			fixturesDirectory,
 			'build-js-basename'
@@ -119,7 +120,6 @@ describe( 'getVanillaConfig bundled integration', () => {
 			cssBuildDirectory: jsOutputDirectory,
 			isProduction: true,
 			strategy: 'bundled',
-			entryKey: 'basename',
 		} );
 
 		expect( configs ).toHaveLength( 2 );
@@ -172,13 +172,11 @@ describe( 'getVanillaConfig bundled integration', () => {
 			await runWebpackConfigs( configs, { concurrency: 2 } );
 
 			expect(
-				fs.existsSync(
-					path.join( cssOutputDirectory, 'admin/style.css' )
-				)
+				fs.existsSync( path.join( cssOutputDirectory, 'style.css' ) )
 			).toBe( true );
 			expect(
 				fs.existsSync(
-					path.join( cssOutputDirectory, 'admin/style.min.css' )
+					path.join( cssOutputDirectory, 'style.min.css' )
 				)
 			).toBe( true );
 		} finally {
@@ -203,7 +201,6 @@ describe( 'getVanillaConfig bundled integration', () => {
 			cssBuildDirectory: jsOutputDirectory,
 			isProduction: true,
 			strategy: 'bundled',
-			entryKey: 'basename',
 		} );
 
 		try {

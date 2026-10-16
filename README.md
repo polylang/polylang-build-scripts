@@ -30,7 +30,7 @@ By default (`strategy: 'per-file'`), each source file gets its own webpack confi
 
 **Optional options:**
 - `strategy` - `'per-file'` (default, backward compatible) or `'bundled'` (one config per asset type and variant)
-- `entryKey` - When `strategy` is `'bundled'`: `'relative'` (default, nested output paths under the build directory) or `'basename'` (flat output names matching the legacy per-file layout, e.g. `js/src/settings.js` → `js/build/settings.min.js`)
+- `entryKey` - When `strategy` is `'bundled'`: `'basename'` (default, flat output names matching the legacy per-file layout, e.g. `js/src/settings.js` → `js/build/settings.min.js`) or `'relative'` (nested paths under the build directory)
 - `jsPatterns` - Glob patterns for JS files (default: `['**/*.js']`)
 - `jsIgnorePatterns` - Patterns to ignore for JS files (default: `[]`)
 - `cssPatterns` - Glob patterns for CSS files (default: `['**/*.css']`)
@@ -41,10 +41,10 @@ By default (`strategy: 'per-file'`), each source file gets its own webpack confi
 | Mode | Option | Entry key example | Output example |
 |------|--------|-------------------|----------------|
 | Per-file (default) | — | `settings` from any path | `js/build/settings.min.js` (basename only; collisions possible) |
+| Bundled (default) | `entryKey: 'basename'` | `settings` | `js/build/settings.min.js` (same flat layout as per-file) |
 | Bundled | `entryKey: 'relative'` | `modules/admin/settings` | `js/build/modules/admin/settings.min.js` |
-| Bundled | `entryKey: 'basename'` | `settings` | `js/build/settings.min.js` (same flat layout as per-file) |
 
-With `entryKey: 'basename'`, two sources that share a basename (e.g. `admin/settings.js` and `frontend/settings.js`) throw a clear error when configs are generated — entries are not silently overwritten.
+With bundled builds, two entry sources that share a basename (e.g. `admin/settings.js` and `frontend/settings.js`) throw a clear error when configs are generated — entries are not silently overwritten.
 
 Bundled configs disable code splitting (`splitChunks` / `runtimeChunk`) so each entry stays a single output file even when entries share local imports.
 
@@ -54,7 +54,6 @@ Bundled configs disable code splitting (`splitChunks` / `runtimeChunk`) so each 
 const vanillaConfigs = getVanillaConfig( {
 	workingDirectory: __dirname,
 	strategy: 'bundled',
-	entryKey: 'basename',
 	jsPatterns: [ 'js/src/**/*.js' ],
 	jsIgnorePatterns: [ '**/*.min.js' ],
 	cssPatterns: [ 'css/src/**/*.css' ],

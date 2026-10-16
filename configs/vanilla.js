@@ -42,7 +42,7 @@ const dedupeStable = ( fileNames ) => {
  * @param {string}   options.cssBuildDirectory   Output directory for CSS files.
  * @param {boolean}  options.isProduction        Whether to enable production mode optimizations.
  * @param {string}   [options.strategy]          Build strategy: `'per-file'` (one config per file per variant, default) or `'bundled'` (four configs total: JS/CSS × min/unmin).
- * @param {string}   [options.entryKey]          Bundled entry key mode: `'relative'` (nested output paths, default) or `'basename'` (flat names like per-file).
+ * @param {string}   [options.entryKey]          Bundled entry key mode: `'basename'` (flat names like per-file, default) or `'relative'` (nested output paths).
  * @return {Object[]} Array of webpack configurations.
  */
 const getVanillaConfig = ( {
@@ -55,7 +55,7 @@ const getVanillaConfig = ( {
 	cssBuildDirectory,
 	isProduction,
 	strategy = 'per-file',
-	entryKey = 'relative',
+	entryKey = 'basename',
 } ) => {
 	if ( strategy !== 'per-file' && strategy !== 'bundled' ) {
 		throw new Error(

@@ -483,8 +483,8 @@ describe( 'getVanillaConfig', () => {
 
 			expect( jsConfigs ).toHaveLength( 2 );
 			expect( cssConfigs ).toHaveLength( 2 );
-			expect( jsConfigs[ 0 ].entry ).toHaveProperty( 'js/file-0' );
-			expect( cssConfigs[ 0 ].entry ).toHaveProperty( 'css/file-0' );
+			expect( jsConfigs[ 0 ].entry ).toHaveProperty( 'file-0' );
+			expect( cssConfigs[ 0 ].entry ).toHaveProperty( 'file-0' );
 		} );
 
 		it( 'should disable code splitting for bundled JS configs', () => {
@@ -510,10 +510,10 @@ describe( 'getVanillaConfig', () => {
 			} );
 		} );
 
-		it( 'should use relative entry keys instead of basename-only keys', () => {
+		it( 'should use basename entry keys by default for bundled JS', () => {
 			glob.sync.mockImplementation( ( pattern ) => {
 				if ( pattern === '**/*.js' ) {
-					return [ 'modules/admin/settings.js' ];
+					return [ 'js/src/settings.js' ];
 				}
 
 				return [];
@@ -532,9 +532,36 @@ describe( 'getVanillaConfig', () => {
 			);
 
 			expect( jsConfig.entry ).toEqual( {
-				'modules/admin/settings': './modules/admin/settings.js',
+				settings: './js/src/settings.js',
 			} );
 			expect( jsConfig.context ).toBe( testWorkingDirectory );
+		} );
+
+		it( 'should use relative entry keys when entryKey is relative', () => {
+			glob.sync.mockImplementation( ( pattern ) => {
+				if ( pattern === '**/*.js' ) {
+					return [ 'modules/admin/settings.js' ];
+				}
+
+				return [];
+			} );
+
+			const configs = getVanillaConfig( {
+				workingDirectory: testWorkingDirectory,
+				jsBuildDirectory,
+				cssBuildDirectory,
+				isProduction: true,
+				strategy: 'bundled',
+				entryKey: 'relative',
+			} );
+
+			const jsConfig = configs.find(
+				( config ) => config.output.filename === '[name].js'
+			);
+
+			expect( jsConfig.entry ).toEqual( {
+				'modules/admin/settings': './modules/admin/settings.js',
+			} );
 		} );
 
 		it( 'should scope CSS clean patterns to the output directory', () => {
@@ -566,33 +593,6 @@ describe( 'getVanillaConfig', () => {
 			] );
 		} );
 
-		it( 'should use basename entry keys when entryKey is basename', () => {
-			glob.sync.mockImplementation( ( pattern ) => {
-				if ( pattern === '**/*.js' ) {
-					return [ 'js/src/settings.js' ];
-				}
-
-				return [];
-			} );
-
-			const configs = getVanillaConfig( {
-				workingDirectory: testWorkingDirectory,
-				jsBuildDirectory,
-				cssBuildDirectory,
-				isProduction: true,
-				strategy: 'bundled',
-				entryKey: 'basename',
-			} );
-
-			const jsConfig = configs.find(
-				( config ) => config.output.filename === '[name].min.js'
-			);
-
-			expect( jsConfig.entry ).toEqual( {
-				settings: './js/src/settings.js',
-			} );
-		} );
-
 		it( 'should throw when bundled basename keys collide', () => {
 			glob.sync.mockImplementation( ( pattern ) => {
 				if ( pattern === '**/*.js' ) {
@@ -609,7 +609,6 @@ describe( 'getVanillaConfig', () => {
 					cssBuildDirectory,
 					isProduction: true,
 					strategy: 'bundled',
-					entryKey: 'basename',
 				} )
 			).toThrow( /Duplicate bundled entry key "settings"/ );
 		} );
