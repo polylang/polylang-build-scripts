@@ -27,7 +27,9 @@ jest.mock( '../main', () => {
 			return ( filename ) => ( {
 				entry: { [ mockPath.parse( filename ).name ]: filename },
 				output: {
-					filename: '[name].work',
+					filename: minimize
+						? '[name].min.work'
+						: '[name].unmin.work',
 					path: destination,
 				},
 				optimization: {
@@ -45,6 +47,10 @@ const glob = require( 'glob' );
  * Internal dependencies
  */
 const { getVanillaConfig } = require( './vanilla' );
+
+const isCssWebpackConfig = ( config ) =>
+	typeof config.output?.filename === 'string' &&
+	config.output.filename.endsWith( '.work' );
 
 describe( 'getVanillaConfig', () => {
 	const testWorkingDirectory = '/test/project';
@@ -228,9 +234,7 @@ describe( 'getVanillaConfig', () => {
 			isProduction: true,
 		} );
 
-		const cssConfigs = configs.filter(
-			( config ) => config.output.filename === '[name].work'
-		);
+		const cssConfigs = configs.filter( isCssWebpackConfig );
 		expect( cssConfigs ).toHaveLength( 4 );
 
 		const unminifiedCssConfigs = cssConfigs.filter(
@@ -316,9 +320,7 @@ describe( 'getVanillaConfig', () => {
 			isProduction: true,
 		} );
 
-		const cssConfigs = configs.filter(
-			( config ) => config.output.filename === '[name].work'
-		);
+		const cssConfigs = configs.filter( isCssWebpackConfig );
 		expect( cssConfigs ).toHaveLength( 4 );
 	} );
 
@@ -348,17 +350,17 @@ describe( 'getVanillaConfig', () => {
 		// Check devtool setting (source maps enabled in dev mode for unminified CSS only)
 		const prodUnminifiedCssConfig = prodConfig.find(
 			( config ) =>
-				config.output.filename === '[name].work' &&
+				isCssWebpackConfig( config ) &&
 				config.optimization.minimize === false
 		);
 		const devUnminifiedCssConfig = devConfig.find(
 			( config ) =>
-				config.output.filename === '[name].work' &&
+				isCssWebpackConfig( config ) &&
 				config.optimization.minimize === false
 		);
 		const devMinifiedCssConfig = devConfig.find(
 			( config ) =>
-				config.output.filename === '[name].work' &&
+				isCssWebpackConfig( config ) &&
 				config.optimization.minimize === true
 		);
 
@@ -390,9 +392,7 @@ describe( 'getVanillaConfig', () => {
 		} );
 
 		const jsConfig = configs.find( ( config ) => config.entry.admin );
-		const cssConfig = configs.find(
-			( config ) => config.output.filename === '[name].work'
-		);
+		const cssConfig = configs.find( isCssWebpackConfig );
 
 		expect( jsConfig.output.path ).toBe( customJsDir );
 		expect( cssConfig.output.path ).toBe( customCssDir );
@@ -443,6 +443,229 @@ describe( 'getVanillaConfig', () => {
 
 		expect( unminifiedConfig ).toBeDefined();
 		expect( unminifiedConfig.optimization.minimize ).toBe( false );
+	} );
+
+	describe( 'bundled strategy', () => {
+		it( 'should return four configs for many JS and CSS files', () => {
+			glob.sync.mockImplementation( ( pattern ) => {
+				if ( pattern === '**/*.js' ) {
+					return Array.from(
+						{ length: 20 },
+						( _, index ) => `js/file-${ index }.js`
+					);
+				}
+				if ( pattern === '**/*.css' ) {
+					return Array.from(
+						{ length: 10 },
+						( _, index ) => `css/file-${ index }.css`
+					);
+				}
+
+				return [];
+			} );
+
+			const configs = getVanillaConfig( {
+				workingDirectory: testWorkingDirectory,
+				jsBuildDirectory,
+				cssBuildDirectory,
+				isProduction: true,
+				strategy: 'bundled',
+			} );
+
+			expect( configs ).toHaveLength( 4 );
+
+			const jsConfigs = configs.filter(
+				( config ) =>
+					config.output.filename.includes( '[name]' ) &&
+					config.output.filename.endsWith( '.js' )
+			);
+			const cssConfigs = configs.filter( isCssWebpackConfig );
+
+			expect( jsConfigs ).toHaveLength( 2 );
+			expect( cssConfigs ).toHaveLength( 2 );
+			expect( jsConfigs[ 0 ].entry ).toHaveProperty( 'file-0' );
+			expect( cssConfigs[ 0 ].entry ).toHaveProperty( 'file-0' );
+		} );
+
+		it( 'should disable code splitting for bundled JS configs', () => {
+			glob.sync.mockImplementation( ( pattern ) => {
+				if ( pattern === '**/*.js' ) {
+					return [ 'main.js' ];
+				}
+
+				return [];
+			} );
+
+			const configs = getVanillaConfig( {
+				workingDirectory: testWorkingDirectory,
+				jsBuildDirectory,
+				cssBuildDirectory,
+				isProduction: true,
+				strategy: 'bundled',
+			} );
+
+			configs.forEach( ( config ) => {
+				expect( config.optimization.splitChunks ).toBe( false );
+				expect( config.optimization.runtimeChunk ).toBe( false );
+			} );
+		} );
+
+		it( 'should use basename entry keys by default for bundled JS', () => {
+			glob.sync.mockImplementation( ( pattern ) => {
+				if ( pattern === '**/*.js' ) {
+					return [ 'js/src/settings.js' ];
+				}
+
+				return [];
+			} );
+
+			const configs = getVanillaConfig( {
+				workingDirectory: testWorkingDirectory,
+				jsBuildDirectory,
+				cssBuildDirectory,
+				isProduction: true,
+				strategy: 'bundled',
+			} );
+
+			const jsConfig = configs.find(
+				( config ) => config.output.filename === '[name].js'
+			);
+
+			expect( jsConfig.entry ).toEqual( {
+				settings: './js/src/settings.js',
+			} );
+			expect( jsConfig.context ).toBe( testWorkingDirectory );
+		} );
+
+		it( 'should use relative entry keys when entryKey is relative', () => {
+			glob.sync.mockImplementation( ( pattern ) => {
+				if ( pattern === '**/*.js' ) {
+					return [ 'modules/admin/settings.js' ];
+				}
+
+				return [];
+			} );
+
+			const configs = getVanillaConfig( {
+				workingDirectory: testWorkingDirectory,
+				jsBuildDirectory,
+				cssBuildDirectory,
+				isProduction: true,
+				strategy: 'bundled',
+				entryKey: 'relative',
+			} );
+
+			const jsConfig = configs.find(
+				( config ) => config.output.filename === '[name].js'
+			);
+
+			expect( jsConfig.entry ).toEqual( {
+				'modules/admin/settings': './modules/admin/settings.js',
+			} );
+		} );
+
+		it( 'should scope CSS clean patterns to the output directory', () => {
+			glob.sync.mockImplementation( ( pattern ) => {
+				if ( pattern === '**/*.css' ) {
+					return [ 'admin/style.css' ];
+				}
+
+				return [];
+			} );
+
+			const configs = getVanillaConfig( {
+				workingDirectory: testWorkingDirectory,
+				jsBuildDirectory,
+				cssBuildDirectory,
+				isProduction: true,
+				strategy: 'bundled',
+			} );
+
+			const cssConfig = configs.find(
+				( config ) => config.output.filename === '[name].unmin.work'
+			);
+			const cleanPlugin = cssConfig.plugins.find(
+				( plugin ) => plugin.constructor.name === 'CleanWebpackPlugin'
+			);
+
+			expect( cleanPlugin.cleanAfterEveryBuildPatterns ).toEqual( [
+				`${ cssBuildDirectory }/**/*.unmin.work`,
+			] );
+		} );
+
+		it( 'should throw when bundled basename keys collide', () => {
+			glob.sync.mockImplementation( ( pattern ) => {
+				if ( pattern === '**/*.js' ) {
+					return [ 'admin/settings.js', 'frontend/settings.js' ];
+				}
+
+				return [];
+			} );
+
+			expect( () =>
+				getVanillaConfig( {
+					workingDirectory: testWorkingDirectory,
+					jsBuildDirectory,
+					cssBuildDirectory,
+					isProduction: true,
+					strategy: 'bundled',
+				} )
+			).toThrow( /Duplicate bundled entry key "settings"/ );
+		} );
+
+		it( 'should return an empty array when no files match', () => {
+			glob.sync.mockReturnValue( [] );
+
+			const configs = getVanillaConfig( {
+				workingDirectory: testWorkingDirectory,
+				jsBuildDirectory,
+				cssBuildDirectory,
+				isProduction: true,
+				strategy: 'bundled',
+			} );
+
+			expect( configs ).toEqual( [] );
+		} );
+	} );
+
+	it( 'should throw for an invalid strategy', () => {
+		glob.sync.mockReturnValue( [] );
+
+		expect( () =>
+			getVanillaConfig( {
+				workingDirectory: testWorkingDirectory,
+				jsBuildDirectory,
+				cssBuildDirectory,
+				isProduction: true,
+				strategy: 'invalid',
+			} )
+		).toThrow( /Invalid vanilla build strategy/ );
+	} );
+
+	it( 'should dedupe files matched by multiple glob patterns', () => {
+		glob.sync.mockImplementation( ( pattern ) => {
+			if ( pattern === 'admin/**/*.js' ) {
+				return [ 'admin/settings.js' ];
+			}
+			if ( pattern === '**/*.js' ) {
+				return [ 'admin/settings.js' ];
+			}
+
+			return [];
+		} );
+
+		const configs = getVanillaConfig( {
+			workingDirectory: testWorkingDirectory,
+			jsPatterns: [ 'admin/**/*.js', '**/*.js' ],
+			jsBuildDirectory,
+			cssBuildDirectory,
+			isProduction: true,
+		} );
+
+		const jsConfigs = configs.filter( ( config ) =>
+			config.output.filename.endsWith( '.js' )
+		);
+		expect( jsConfigs ).toHaveLength( 2 );
 	} );
 
 	it( 'should configure optimization for minified JS files', () => {
