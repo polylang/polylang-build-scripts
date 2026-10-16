@@ -15,6 +15,19 @@ const {
 	createBundledCssConfig,
 } = require( '../transformers/css.js' );
 
+const dedupeStable = ( fileNames ) => {
+	const seen = new Set();
+
+	return fileNames.filter( ( filename ) => {
+		if ( seen.has( filename ) ) {
+			return false;
+		}
+
+		seen.add( filename );
+		return true;
+	} );
+};
+
 /**
  * Generate webpack configuration for vanilla JS and CSS files.
  * Finds files using glob patterns and creates minified/unminified versions.
@@ -29,6 +42,7 @@ const {
  * @param {string}   options.cssBuildDirectory   Output directory for CSS files.
  * @param {boolean}  options.isProduction        Whether to enable production mode optimizations.
  * @param {string}   [options.strategy]          Build strategy: `'per-file'` (one config per file per variant, default) or `'bundled'` (four configs total: JS/CSS × min/unmin).
+ * @param {string}   [options.entryKey]          Bundled entry key mode: `'relative'` (nested output paths, default) or `'basename'` (flat names like per-file).
  * @return {Object[]} Array of webpack configurations.
  */
 const getVanillaConfig = ( {
@@ -41,19 +55,30 @@ const getVanillaConfig = ( {
 	cssBuildDirectory,
 	isProduction,
 	strategy = 'per-file',
+	entryKey = 'relative',
 } ) => {
-	const jsFileNames = jsPatterns.flatMap( ( pattern ) =>
-		glob( pattern, {
-			cwd: workingDirectory,
-			ignore: jsIgnorePatterns,
-		} ).map( ( filename ) => `./${ filename }` )
+	if ( strategy !== 'per-file' && strategy !== 'bundled' ) {
+		throw new Error(
+			`Invalid vanilla build strategy "${ strategy }". Expected "per-file" or "bundled".`
+		);
+	}
+
+	const jsFileNames = dedupeStable(
+		jsPatterns.flatMap( ( pattern ) =>
+			glob( pattern, {
+				cwd: workingDirectory,
+				ignore: jsIgnorePatterns,
+			} ).map( ( filename ) => `./${ filename }` )
+		)
 	);
 
-	const cssFileNames = cssPatterns.flatMap( ( pattern ) =>
-		glob( pattern, {
-			cwd: workingDirectory,
-			ignore: cssIgnorePatterns,
-		} ).map( ( filename ) => `./${ filename }` )
+	const cssFileNames = dedupeStable(
+		cssPatterns.flatMap( ( pattern ) =>
+			glob( pattern, {
+				cwd: workingDirectory,
+				ignore: cssIgnorePatterns,
+			} ).map( ( filename ) => `./${ filename }` )
+		)
 	);
 
 	if ( strategy === 'bundled' ) {
@@ -65,13 +90,15 @@ const getVanillaConfig = ( {
 					jsFileNames,
 					jsBuildDirectory,
 					false,
-					workingDirectory
+					workingDirectory,
+					entryKey
 				),
 				createBundledJsConfig(
 					jsFileNames,
 					jsBuildDirectory,
 					true,
-					workingDirectory
+					workingDirectory,
+					entryKey
 				)
 			);
 		}
@@ -83,14 +110,16 @@ const getVanillaConfig = ( {
 					cssBuildDirectory,
 					false,
 					isProduction,
-					workingDirectory
+					workingDirectory,
+					entryKey
 				),
 				createBundledCssConfig(
 					cssFileNames,
 					cssBuildDirectory,
 					true,
 					isProduction,
-					workingDirectory
+					workingDirectory,
+					entryKey
 				)
 			);
 		}

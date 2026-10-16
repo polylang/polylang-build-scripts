@@ -23,6 +23,22 @@ describe( 'runWebpackConfigs', () => {
 		expect( webpack ).not.toHaveBeenCalled();
 	} );
 
+	it( 'should throw TypeError when configs is not an array', async () => {
+		await expect( runWebpackConfigs( null ) ).rejects.toThrow( TypeError );
+		await expect( runWebpackConfigs( {} ) ).rejects.toThrow( TypeError );
+	} );
+
+	it( 'should throw TypeError for invalid concurrency', async () => {
+		await expect(
+			runWebpackConfigs( [ { entry: './a.js' } ], { concurrency: 0 } )
+		).rejects.toThrow( TypeError );
+		await expect(
+			runWebpackConfigs( [ { entry: './a.js' } ], {
+				concurrency: Number.NaN,
+			} )
+		).rejects.toThrow( TypeError );
+	} );
+
 	it( 'should run all configs and return stats in order', async () => {
 		const statsA = { hasErrors: () => false };
 		const statsB = { hasErrors: () => false };

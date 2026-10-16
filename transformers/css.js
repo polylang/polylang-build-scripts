@@ -6,7 +6,10 @@ const path = require( 'path' );
 /**
  * Internal dependencies.
  */
-const { getBundledEntryKey } = require( '../lib/entry-keys.js' );
+const {
+	buildBundledEntry,
+	getEntryKeyResolver,
+} = require( '../lib/entry-keys.js' );
 
 /**
  * Peer dependencies.
@@ -14,6 +17,17 @@ const { getBundledEntryKey } = require( '../lib/entry-keys.js' );
 const MiniCssExtractPlugin = require( 'mini-css-extract-plugin' );
 const CssMinimizerPlugin = require( 'css-minimizer-webpack-plugin' );
 const { CleanWebpackPlugin } = require( 'clean-webpack-plugin' );
+
+function getCssIntermediateFilename( minimize ) {
+	return minimize ? '[name].min.work' : '[name].unmin.work';
+}
+
+function getCssIntermediateCleanPattern( destination, minimize ) {
+	return path.join(
+		destination,
+		minimize ? '**/*.min.work' : '**/*.unmin.work'
+	);
+}
 
 /**
  * Prepare webpack configuration to build css files with resolved @import statements.
@@ -29,7 +43,7 @@ function transformCssEntry( destination, minimize, isProduction ) {
 		const config = {
 			entry,
 			output: {
-				filename: `[name].work`,
+				filename: getCssIntermediateFilename( minimize ),
 				path: destination,
 			},
 			plugins: [
@@ -41,7 +55,7 @@ function transformCssEntry( destination, minimize, isProduction ) {
 					verbose: false,
 					cleanOnceBeforeBuildPatterns: [],
 					cleanAfterEveryBuildPatterns: [
-						path.join( process.cwd(), '**/*.work' ),
+						getCssIntermediateCleanPattern( destination, minimize ),
 					],
 				} ),
 			],
@@ -72,11 +86,12 @@ function transformCssEntry( destination, minimize, isProduction ) {
 /**
  * Build a single webpack config for all vanilla CSS entries (min or unmin).
  *
- * @param {string[]} fileNames    Relative entry paths.
- * @param {string}   destination  Output directory.
- * @param {boolean}  minimize     True to generate minified files.
- * @param {boolean}  isProduction True when building in production mode.
- * @param {string}   context      Webpack context (working directory).
+ * @param {string[]} fileNames                 Relative entry paths.
+ * @param {string}   destination               Output directory.
+ * @param {boolean}  minimize                  True to generate minified files.
+ * @param {boolean}  isProduction              True when building in production mode.
+ * @param {string}   context                   Webpack context (working directory).
+ * @param {string}   [entryKeyMode='relative'] `'relative'` or `'basename'` entry key mode.
  * @return {Object} Webpack configuration.
  */
 function createBundledCssConfig(
@@ -84,20 +99,19 @@ function createBundledCssConfig(
 	destination,
 	minimize,
 	isProduction,
-	context
+	context,
+	entryKeyMode = 'relative'
 ) {
-	const entry = Object.fromEntries(
-		fileNames.map( ( filename ) => [
-			getBundledEntryKey( filename ),
-			filename,
-		] )
+	const entry = buildBundledEntry(
+		fileNames,
+		getEntryKeyResolver( entryKeyMode )
 	);
 
 	return {
 		context,
 		entry,
 		output: {
-			filename: '[name].work',
+			filename: getCssIntermediateFilename( minimize ),
 			path: destination,
 		},
 		plugins: [
@@ -109,7 +123,7 @@ function createBundledCssConfig(
 				verbose: false,
 				cleanOnceBeforeBuildPatterns: [],
 				cleanAfterEveryBuildPatterns: [
-					path.join( destination, '**/*.work' ),
+					getCssIntermediateCleanPattern( destination, minimize ),
 				],
 			} ),
 		],
@@ -131,6 +145,8 @@ function createBundledCssConfig(
 						} ),
 				  ]
 				: [],
+			splitChunks: false,
+			runtimeChunk: false,
 		},
 	};
 }

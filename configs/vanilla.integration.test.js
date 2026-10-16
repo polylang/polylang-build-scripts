@@ -8,6 +8,7 @@ const webpack = require( 'webpack' );
 /**
  * Internal dependencies
  */
+const { runWebpackConfigs } = require( '../runner' );
 const { getVanillaConfig } = require( './vanilla' );
 
 describe( 'getVanillaConfig bundled integration', () => {
@@ -98,6 +99,131 @@ describe( 'getVanillaConfig bundled integration', () => {
 		} finally {
 			fs.rmSync( jsOutputDirectory, { recursive: true, force: true } );
 			fs.rmSync( cssOutputDirectory, { recursive: true, force: true } );
+		}
+	} );
+
+	it( 'should build flat JS outputs when entryKey is basename', async () => {
+		const jsOutputDirectory = path.join(
+			fixturesDirectory,
+			'build-js-basename'
+		);
+
+		fs.rmSync( jsOutputDirectory, { recursive: true, force: true } );
+		fs.mkdirSync( jsOutputDirectory, { recursive: true } );
+
+		const configs = getVanillaConfig( {
+			workingDirectory: fixturesDirectory,
+			jsPatterns: [ 'admin/settings.js' ],
+			cssPatterns: [],
+			jsBuildDirectory: jsOutputDirectory,
+			cssBuildDirectory: jsOutputDirectory,
+			isProduction: true,
+			strategy: 'bundled',
+			entryKey: 'basename',
+		} );
+
+		expect( configs ).toHaveLength( 2 );
+
+		try {
+			for ( const config of configs ) {
+				await runWebpack( config );
+			}
+
+			expect(
+				fs.existsSync( path.join( jsOutputDirectory, 'settings.js' ) )
+			).toBe( true );
+			expect(
+				fs.existsSync(
+					path.join( jsOutputDirectory, 'settings.min.js' )
+				)
+			).toBe( true );
+			expect(
+				fs.existsSync(
+					path.join( jsOutputDirectory, 'admin/settings.js' )
+				)
+			).toBe( false );
+		} finally {
+			fs.rmSync( jsOutputDirectory, { recursive: true, force: true } );
+		}
+	} );
+
+	it( 'should run bundled CSS min and unmin configs in parallel', async () => {
+		const cssOutputDirectory = path.join(
+			fixturesDirectory,
+			'build-css-parallel'
+		);
+
+		fs.rmSync( cssOutputDirectory, { recursive: true, force: true } );
+		fs.mkdirSync( cssOutputDirectory, { recursive: true } );
+
+		const configs = getVanillaConfig( {
+			workingDirectory: fixturesDirectory,
+			jsPatterns: [],
+			cssPatterns: [ 'admin/style.css' ],
+			jsBuildDirectory: cssOutputDirectory,
+			cssBuildDirectory: cssOutputDirectory,
+			isProduction: true,
+			strategy: 'bundled',
+		} );
+
+		expect( configs ).toHaveLength( 2 );
+
+		try {
+			await runWebpackConfigs( configs, { concurrency: 2 } );
+
+			expect(
+				fs.existsSync(
+					path.join( cssOutputDirectory, 'admin/style.css' )
+				)
+			).toBe( true );
+			expect(
+				fs.existsSync(
+					path.join( cssOutputDirectory, 'admin/style.min.css' )
+				)
+			).toBe( true );
+		} finally {
+			fs.rmSync( cssOutputDirectory, { recursive: true, force: true } );
+		}
+	} );
+
+	it( 'should not emit extra chunks when entries share a local import', async () => {
+		const jsOutputDirectory = path.join(
+			fixturesDirectory,
+			'build-js-shared'
+		);
+
+		fs.rmSync( jsOutputDirectory, { recursive: true, force: true } );
+		fs.mkdirSync( jsOutputDirectory, { recursive: true } );
+
+		const configs = getVanillaConfig( {
+			workingDirectory: fixturesDirectory,
+			jsPatterns: [ 'js/src/entry-a.js', 'js/src/entry-b.js' ],
+			cssPatterns: [],
+			jsBuildDirectory: jsOutputDirectory,
+			cssBuildDirectory: jsOutputDirectory,
+			isProduction: true,
+			strategy: 'bundled',
+			entryKey: 'basename',
+		} );
+
+		try {
+			await runWebpackConfigs( configs, { concurrency: 2 } );
+
+			const outputFiles = fs.readdirSync( jsOutputDirectory );
+			const jsOutputs = outputFiles.filter( ( file ) =>
+				file.endsWith( '.js' )
+			);
+
+			expect( jsOutputs.sort() ).toEqual(
+				[
+					'entry-a.js',
+					'entry-a.min.js',
+					'entry-b.js',
+					'entry-b.min.js',
+				].sort()
+			);
+		} finally {
+			fs.rmSync( jsOutputDirectory, { recursive: true, force: true } );
 		}
 	} );
 } );

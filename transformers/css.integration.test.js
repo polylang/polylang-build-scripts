@@ -2,7 +2,6 @@
  * External dependencies
  */
 const fs = require( 'fs' );
-const os = require( 'os' );
 const path = require( 'path' );
 const webpack = require( 'webpack' );
 
@@ -33,9 +32,9 @@ describe( 'transformCssEntry integration', () => {
 		} );
 
 	it( 'should resolve @import in unminified and minified CSS output', async () => {
-		const outputDirectory = fs.mkdtempSync(
-			path.join( os.tmpdir(), 'pll-css-build-' )
-		);
+		const outputDirectory = path.join( fixturesDirectory, 'build-output' );
+		fs.rmSync( outputDirectory, { recursive: true, force: true } );
+		fs.mkdirSync( outputDirectory, { recursive: true } );
 
 		try {
 			await runWebpack(

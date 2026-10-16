@@ -30,12 +30,29 @@ By default (`strategy: 'per-file'`), each source file gets its own webpack confi
 
 **Optional options:**
 - `strategy` - `'per-file'` (default, backward compatible) or `'bundled'` (one config per asset type and variant)
+- `entryKey` - When `strategy` is `'bundled'`: `'relative'` (default, nested output paths under the build directory) or `'basename'` (flat output names matching the legacy per-file layout, e.g. `js/src/settings.js` → `js/build/settings.min.js`)
 - `jsPatterns` - Glob patterns for JS files (default: `['**/*.js']`)
 - `jsIgnorePatterns` - Patterns to ignore for JS files (default: `[]`)
 - `cssPatterns` - Glob patterns for CSS files (default: `['**/*.css']`)
 - `cssIgnorePatterns` - Patterns to ignore for CSS files (default: `[]`)
 
-**Entry naming:** The legacy `per-file` strategy uses the file basename as the webpack entry key (`settings.js` → `settings`), so two files with the same name in different directories will collide. The `bundled` strategy uses stable relative keys (`./modules/admin/settings.js` → `modules/admin/settings`) and writes nested output paths (`modules/admin/settings.min.js`).
+**Entry naming:** The legacy `per-file` strategy uses the file basename as the webpack entry key (`settings.js` → `settings`), so two files with the same name in different directories will collide. With `strategy: 'bundled'` and `entryKey: 'relative'` (default), keys follow the source path (`./modules/admin/settings.js` → `modules/admin/settings`) and outputs are nested (`modules/admin/settings.min.js`). Use `entryKey: 'basename'` when PHP enqueues flat URLs (`js/build/settings.min.js`) — typical for Polylang Pro vanilla assets. Duplicate basenames in one bundled config throw at config generation time.
+
+**Polylang Pro-style bundled example:**
+
+```javascript
+const vanillaConfigs = getVanillaConfig( {
+	workingDirectory: __dirname,
+	strategy: 'bundled',
+	entryKey: 'basename',
+	jsPatterns: [ 'js/src/**/*.js' ],
+	jsIgnorePatterns: [ '**/*.min.js' ],
+	cssPatterns: [ 'css/src/**/*.css' ],
+	jsBuildDirectory: path.resolve( __dirname, 'js/build' ),
+	cssBuildDirectory: path.resolve( __dirname, 'css/build' ),
+	isProduction: mode === 'production',
+} );
+```
 
 **Glob scoping:** Keep `jsPatterns`, `cssPatterns`, and ignore lists tight so build scripts only pick up intended sources (for example, exclude `vendor/**/tmp/**`).
 
@@ -101,7 +118,9 @@ module.exports = reactConfigs;
 
 ## runWebpackConfigs
 
-Runs an array of webpack configs with optional concurrency limiting. Useful when combining many configs (for example, legacy per-file vanilla plus reactified builds) without letting webpack-cli spawn unbounded parallel compilations.
+Runs an array of webpack configs with optional concurrency limiting. Useful when combining many configs (for example, legacy per-file vanilla plus reactified builds) without letting webpack-cli spawn unbounded parallel compilations. Rejects with `TypeError` when `configs` is not an array or when `concurrency` is invalid. Fails fast on the first compilation error.
+
+Bundled vanilla CSS emits separate intermediate filenames for minified and unminified builds, so min and unmin configs are safe to run in parallel (for example with `runWebpackConfigs( configs, { concurrency: 4 } )`). Legacy per-file CSS uses the same split intermediate names.
 
 ```javascript
 const { runWebpackConfigs } = require( '@wpsyntex/polylang-build-scripts' );

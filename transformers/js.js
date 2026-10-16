@@ -6,7 +6,10 @@ const path = require( 'path' );
 /**
  * Internal dependencies.
  */
-const { getBundledEntryKey } = require( '../lib/entry-keys.js' );
+const {
+	buildBundledEntry,
+	getEntryKeyResolver,
+} = require( '../lib/entry-keys.js' );
 
 /**
  * Peer dependencies
@@ -45,18 +48,23 @@ function transformJsEntry( destination, minimize = false ) {
 /**
  * Build a single webpack config for all vanilla JS entries (min or unmin).
  *
- * @param {string[]} fileNames   Relative entry paths.
- * @param {string}   destination Output directory.
- * @param {boolean}  minimize    True to generate minified files.
- * @param {string}   context     Webpack context (working directory).
+ * @param {string[]} fileNames                 Relative entry paths.
+ * @param {string}   destination               Output directory.
+ * @param {boolean}  minimize                  True to generate minified files.
+ * @param {string}   context                   Webpack context (working directory).
+ * @param {string}   [entryKeyMode='relative'] `'relative'` or `'basename'` entry key mode.
  * @return {Object} Webpack configuration.
  */
-function createBundledJsConfig( fileNames, destination, minimize, context ) {
-	const entry = Object.fromEntries(
-		fileNames.map( ( filename ) => [
-			getBundledEntryKey( filename ),
-			filename,
-		] )
+function createBundledJsConfig(
+	fileNames,
+	destination,
+	minimize,
+	context,
+	entryKeyMode = 'relative'
+) {
+	const entry = buildBundledEntry(
+		fileNames,
+		getEntryKeyResolver( entryKeyMode )
 	);
 
 	return {
@@ -70,6 +78,8 @@ function createBundledJsConfig( fileNames, destination, minimize, context ) {
 		optimization: {
 			minimize,
 			minimizer: [ new TerserPlugin( { extractComments: false } ) ],
+			splitChunks: false,
+			runtimeChunk: false,
 		},
 	};
 }

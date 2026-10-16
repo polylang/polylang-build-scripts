@@ -3,6 +3,7 @@
  */
 const MiniCssExtractPlugin = require( 'mini-css-extract-plugin' );
 const CssMinimizerPlugin = require( 'css-minimizer-webpack-plugin' );
+const { CleanWebpackPlugin } = require( 'clean-webpack-plugin' );
 const { transformCssEntry } = require( './css.js' );
 
 describe( 'transformCssEntry', () => {
@@ -68,5 +69,32 @@ describe( 'transformCssEntry', () => {
 		expect( getConfig( false, true ).devtool ).toBe( false );
 		expect( getConfig( true, false ).devtool ).toBe( false );
 		expect( getConfig( true, true ).devtool ).toBe( false );
+	} );
+
+	it( 'should use distinct intermediate filenames for min and unmin', () => {
+		expect( getConfig( false, true ).output.filename ).toBe(
+			'[name].unmin.work'
+		);
+		expect( getConfig( true, true ).output.filename ).toBe(
+			'[name].min.work'
+		);
+	} );
+
+	it( 'should scope clean patterns to the destination directory', () => {
+		const unminConfig = getConfig( false, true );
+		const minConfig = getConfig( true, true );
+		const unminClean = unminConfig.plugins.find(
+			( plugin ) => plugin instanceof CleanWebpackPlugin
+		);
+		const minClean = minConfig.plugins.find(
+			( plugin ) => plugin instanceof CleanWebpackPlugin
+		);
+
+		expect( unminClean.cleanAfterEveryBuildPatterns ).toEqual( [
+			`${ destination }/**/*.unmin.work`,
+		] );
+		expect( minClean.cleanAfterEveryBuildPatterns ).toEqual( [
+			`${ destination }/**/*.min.work`,
+		] );
 	} );
 } );
